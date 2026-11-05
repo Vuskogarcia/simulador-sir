@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simulador SIR / SIRS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07040f;--bg2:#120a24;--mg:#ff2bd6;--cy:#00f0ff;--ye:#f3ff3c;--tx:#e9e6ff;--dim:#9a92c4;--pn:rgba(10,6,25,.82)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#07040f}
+body{min-height:100vh;color:var(--tx);font-family:Rajdhani,"Segoe UI",sans-serif;font-weight:500;font-size:17px;
+ background:radial-gradient(ellipse at 85% -10%,rgba(255,43,214,.25),transparent 50%),radial-gradient(ellipse at 0% 110%,rgba(0,240,255,.18),transparent 50%),linear-gradient(180deg,var(--bg2),var(--bg));background-attachment:fixed}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px);z-index:50}
+.mono{font-family:"Share Tech Mono",Consolas,monospace}
+header{padding:22px 28px 10px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 30px;justify-content:space-between}
+h1{font-family:Orbitron,sans-serif;font-weight:900;font-size:clamp(24px,3.4vw,40px);letter-spacing:2px;color:#fff;
+ text-shadow:0 0 6px var(--mg),0 0 22px rgba(255,43,214,.7),3px 0 0 rgba(0,240,255,.7),-3px 0 0 rgba(255,43,214,.7)}
+.sub{font-family:"Share Tech Mono",monospace;color:var(--cy);letter-spacing:2px;font-size:14px;margin-top:4px}
+.sub::before{content:"> "}
+.authors{font-family:"Share Tech Mono",monospace;font-size:13px;color:var(--dim);text-align:right;line-height:1.6}
+.authors b{color:var(--mg);font-weight:400}
+main{display:grid;grid-template-columns:330px minmax(0,1fr);gap:18px;padding:12px 28px 30px}
+@media(max-width:980px){main{grid-template-columns:minmax(0,1fr);padding:10px 16px 24px}header{padding:18px 16px 6px}.authors{text-align:left}.chartwrap{height:300px}.player button{min-width:90px}.player .t{min-width:80px}}
+.panel{background:var(--pn);border:1px solid rgba(0,240,255,.5);box-shadow:0 0 16px rgba(0,240,255,.18),inset 0 0 20px rgba(0,240,255,.05);padding:16px 18px;
+ clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.panel.m{border-color:rgba(255,43,214,.6);box-shadow:0 0 16px rgba(255,43,214,.22),inset 0 0 20px rgba(255,43,214,.06)}
+.lbl{font-family:"Share Tech Mono",monospace;font-size:13px;color:var(--ye);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.col{display:flex;flex-direction:column;gap:16px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+button{font-family:Orbitron,sans-serif;font-weight:800;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;color:var(--cy);background:rgba(0,240,255,.06);border:1px solid var(--cy);padding:10px 8px;transition:.15s}
+button:hover{background:rgba(0,240,255,.18);box-shadow:0 0 12px rgba(0,240,255,.5)}
+button.on{background:var(--cy);color:#07040f;box-shadow:0 0 16px rgba(0,240,255,.7)}
+button.mg{color:var(--mg);border-color:var(--mg);background:rgba(255,43,214,.06)}
+button.mg:hover{background:rgba(255,43,214,.2);box-shadow:0 0 12px rgba(255,43,214,.6)}
+button.mg.on{background:var(--mg);color:#07040f}
+.ctl{margin:10px 0}
+.ctl .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.ctl .name{font-weight:700}
+.ctl .name small{color:var(--dim);font-weight:500}
+.ctl input[type=number]{width:86px;background:#000;border:1px solid rgba(0,240,255,.45);color:var(--cy);font-family:"Share Tech Mono",monospace;font-size:15px;padding:3px 6px;text-align:right}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;background:linear-gradient(90deg,var(--mg),var(--cy));outline:none;border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#07040f;border:2px solid var(--cy);box-shadow:0 0 10px var(--cy);cursor:pointer;transform:rotate(45deg)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;background:#07040f;border:2px solid var(--cy);box-shadow:0 0 10px var(--cy);cursor:pointer;border-radius:0}
+.dis{opacity:.3;pointer-events:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:rgba(0,0,0,.45);border-left:3px solid var(--cy);padding:10px 14px}
+.stat.m{border-left-color:var(--mg)}.stat.y{border-left-color:var(--ye)}
+.stat .k{font-family:"Share Tech Mono",monospace;font-size:12px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase}
+.stat .v{font-family:Orbitron,sans-serif;font-weight:800;font-size:22px;color:#fff;margin-top:4px}
+.stat .d{font-size:14px;color:var(--dim)}
+.chartwrap{position:relative;height:400px}
+canvas{display:block;width:100%;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-family:"Share Tech Mono",monospace;font-size:14px;margin-bottom:8px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:18px;height:4px}
+.legend label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--dim)}
+.player{display:flex;gap:12px;align-items:center;margin-top:10px}
+.player button{min-width:110px}
+.player .t{font-family:"Share Tech Mono",monospace;color:var(--ye);min-width:110px;text-align:right}
+.netrow{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}
+@media(max-width:1200px){.netrow{grid-template-columns:minmax(0,1fr)}}
+.net{display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:4px}
+@media(max-width:600px){.net{grid-template-columns:repeat(10,minmax(0,1fr))}}
+.pc{aspect-ratio:1;border:1px solid;transition:background .2s,border-color .2s,box-shadow .2s}
+.pc.S{border-color:var(--cy);background:rgba(0,240,255,.12)}
+.pc.I{border-color:var(--mg);background:var(--mg);box-shadow:0 0 8px var(--mg)}
+.pc.R{border-color:var(--ye);background:rgba(243,255,60,.25)}
+.eqbox{font-family:"Times New Roman",serif;font-style:italic;font-size:19px;line-height:1.9;background:rgba(0,0,0,.45);padding:10px 14px;border-left:3px solid var(--mg)}
+.eqbox .a{color:var(--mg)}
+.tablewrap{max-height:340px;overflow:auto;border:1px solid rgba(0,240,255,.25)}
+table{width:100%;border-collapse:collapse;font-family:"Share Tech Mono",monospace;font-size:13px}
+th,td{padding:5px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
+th{position:sticky;top:0;background:#12082a;color:var(--ye);font-weight:400;letter-spacing:1px}
+td:first-child,th:first-child{text-align:left;color:var(--dim)}
+tr.cur td{background:rgba(255,43,214,.18)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.warn{color:var(--mg);font-size:14px;margin-top:8px;min-height:18px}
+.note{color:var(--dim);font-size:14px;line-height:1.4}
+</style>
+</head>
+<body>
+<header>
+ <div>
+  <h1>SIMULADOR SIR // SIRS</h1>
+  <div class="sub">propagación de malware en una red de computadoras · runge-kutta 4</div>
+ </div>
+ <div class="authors">ECUACIONES DIFERENCIALES<br><b>▸</b> Alfonso Vera Esteban Felipe<br><b>▸</b> Garcia Gonzalez Kevin Vuskovit</div>
+</header>
+
+<main>
+ <!-- CONTROLES -->
+ <aside class="col">
+  <div class="panel">
+   <div class="lbl">// Modelo</div>
+   <div class="modes">
+    <button id="mSIR" class="on">SIR</button>
+    <button id="mSIRS" class="mg">SIRS (reinfección)</button>
+   </div>
+   <div class="eqbox" id="eqs"></div>
+  </div>
+
+  <div class="panel">
+   <div class="lbl">// Escenarios de la presentación</div>
+   <div class="modes">
+    <button id="p1">No reinfección</button>
+    <button id="p2" class="mg">Reinfección</button>
+   </div>
+   <div class="note">Cargan los parámetros usados en las diapositivas 19 y 22.</div>
+  </div>
+
+  <div class="panel">
+   <div class="lbl">// Parámetros</div>
+   <div id="ctls"></div>
+   <div class="warn" id="warn"></div>
+  </div>
+ </aside>
+
+ <!-- RESULTADOS -->
+ <section class="col">
+  <div class="stats" id="stats"></div>
+
+  <div class="panel">
+   <div class="row" style="margin-bottom:6px">
+    <div class="lbl" style="margin:0">// Evolución temporal</div>
+    <div class="legend">
+     <span><i style="background:var(--cy)"></i>S(t) susceptibles</span>
+     <span><i style="background:var(--mg)"></i>I(t) infectados</span>
+     <span><i style="background:var(--ye)"></i>R(t) recuperados</span>
+     <label><input type="checkbox" id="showAn"> I(t) analítica ≈ I₀e<sup>(βN−γ)t</sup></label>
+    </div>
+   </div>
+   <div class="chartwrap"><canvas id="chart"></canvas></div>
+   <div class="player">
+    <button id="play">▶ Simular</button>
+    <input type="range" id="tcur" min="0" max="100" value="0" step="1">
+    <div class="t" id="tlabel">t = 0</div>
+   </div>
+  </div>
+
+  <div class="netrow">
+   <div class="panel m">
+    <div class="lbl">// Estado de la red en el instante t</div>
+    <div class="net" id="net"></div>
+   </div>
+   <div class="panel">
+    <div class="lbl">// Lectura en t</div>
+    <div id="now" class="col" style="gap:8px"></div>
+   </div>
+  </div>
+
+  <div class="panel">
+   <div class="row" style="margin-bottom:10px">
+    <div class="lbl" style="margin:0">// Tabla RK4</div>
+    <button id="csv">⇩ Exportar CSV</button>
+   </div>
+   <div class="tablewrap"><table id="tbl"></table></div>
+  </div>
+ </section>
+</main>
+
+<script>
+const P = {beta:0.035, gamma:0.25, alpha:0.18, S0:99, I0:1, R0:0, h:1, T:20};
+let mode = 'SIR';
+const defs = [
+ {k:'beta', n:'β', d:'tasa de infección', min:0, max:0.1, step:0.001},
+ {k:'gamma',n:'γ', d:'tasa de recuperación', min:0, max:1, step:0.01},
+ {k:'alpha',n:'α', d:'pérdida de protección', min:0, max:1, step:0.01, sirs:true},
+ {k:'S0',   n:'S(0)', d:'susceptibles', min:0, max:200, step:1},
+ {k:'I0',   n:'I(0)', d:'infectados', min:0, max:200, step:1},
+ {k:'R0',   n:'R(0)', d:'recuperados', min:0, max:200, step:1},
+ {k:'h',    n:'h', d:'paso de tiempo', min:0.05, max:2, step:0.05},
+ {k:'T',    n:'T', d:'tiempo final', min:5, max:150, step:1},
+];
+const $ = id => document.getElementById(id);
+
+// ---------- controles ----------
+const ctls = $('ctls');
+defs.forEach(d => {
+ const w = document.createElement('div'); w.className='ctl'; w.id='c_'+d.k;
+ w.innerHTML = `<div class="top"><span class="name">${d.n} <small>${d.d}</small></span><input type="number" min="${d.min}" max="${d.max}" step="${d.step}"></div><input type="range" min="${d.min}" max="${d.max}" step="${d.step}">`;
+ ctls.appendChild(w);
+ const [num, rng] = w.querySelectorAll('input');
+ const set = v => { v = parseFloat(v); if (isNaN(v)) return; P[d.k] = v; num.value = v; rng.value = v; run(); };
+ num.addEventListener('change', e => set(e.target.value));
+ rng.addEventListener('input', e => set(e.target.value));
+ d.num = num; d.rng = rng;
+});
+function syncCtls(){ defs.forEach(d => { d.num.value = P[d.k]; d.rng.value = P[d.k]; }); $('c_alpha').classList.toggle('dis', mode==='SIR'); }
+
+function setMode(m){
+ mode = m; $('mSIR').classList.toggle('on', m==='SIR'); $('mSIRS').classList.toggle('on', m==='SIRS');
+ $('eqs').innerHTML = m==='SIR'
+  ? 'dS/dt = −βSI<br>dI/dt = βSI − γI<br>dR/dt = γI'
+  : 'dS/dt = −βSI <span class="a">+ αR</span><br>dI/dt = βSI − γI<br>dR/dt = γI <span class="a">− αR</span>';
+ syncCtls(); run();
+}
+$('mSIR').onclick = () => setMode('SIR');
+$('mSIRS').onclick = () => setMode('SIRS');
+$('p1').onclick = () => { Object.assign(P,{beta:.035,gamma:.25,S0:99,I0:1,R0:0,h:1,T:20}); setMode('SIR'); };
+$('p2').onclick = () => { Object.assign(P,{beta:.035,gamma:.25,alpha:.18,S0:95,I0:5,R0:0,h:1,T:40}); setMode('SIRS'); };
+
+// ---------- RK4 ----------
+let data = [];
+function rk4(){
+ const a = mode==='SIRS' ? P.alpha : 0, b = P.beta, g = P.gamma, h = P.h;
+ const f = (S,I,R) => [-b*S*I + a*R, b*S*I - g*I, g*I - a*R];
+ let y = [P.S0, P.I0, P.R0], t = 0; const out = [{t, S:y[0], I:y[1], R:y[2]}];
+ const n = Math.round(P.T / h);
+ for (let i = 0; i < n; i++){
+  const k1 = f(...y).map(v=>h*v);
+  const k2 = f(y[0]+k1[0]/2, y[1]+k1[1]/2, y[2]+k1[2]/2).map(v=>h*v);
+  const k3 = f(y[0]+k2[0]/2, y[1]+k2[1]/2, y[2]+k2[2]/2).map(v=>h*v);
+  const k4 = f(y[0]+k3[0], y[1]+k3[1], y[2]+k3[2]).map(v=>h*v);
+  y = y.map((v,j) => v + (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]) / 6);
+  t = +( (i+1)*h ).toFixed(6);
+  out.push({t, S:y[0], I:y[1], R:y[2]});
+ }
+ return out;
+}
+
+// ---------- ejecución ----------
+let cur = 0;
+function run(){
+ data = rk4();
+ const tc = $('tcur'); tc.max = data.length-1; if (cur > data.length-1) cur = data.length-1; tc.value = cur;
+ stats(); draw(); table(); net();
+}
+
+const fmt = (v, d=2) => Number.isFinite(v) ? (Math.abs(v) >= 1e5 ? v.toExponential(2) : v.toFixed(d)) : '∞';
+function stats(){
+ const N = P.S0 + P.I0 + P.R0;
+ const Rn = P.gamma > 0 ? P.beta * P.S0 / P.gamma : Infinity;
+ let pk = data[0]; data.forEach(d => { if (d.I > pk.I) pk = d; });
+ const last = data[data.length-1];
+ $('stats').innerHTML = `
+  <div class="stat"><div class="k">N total</div><div class="v">${fmt(N,0)}</div><div class="d">S(0)+I(0)+R(0)</div></div>
+  <div class="stat m"><div class="k">ℛ₀ = βS(0)/γ</div><div class="v">${fmt(Rn)}</div><div class="d">${Rn>1?'βS > γ · hay brote':'βS ≤ γ · el virus no se propaga'}</div></div>
+  <div class="stat m"><div class="k">Pico de infectados</div><div class="v">${fmt(pk.I,1)}</div><div class="d">en t = ${fmt(pk.t,2)}</div></div>
+  <div class="stat y"><div class="k">Estado en t = ${fmt(last.t,1)}</div><div class="v" style="font-size:16px;line-height:1.5">S ${fmt(last.S,1)} · I ${fmt(last.I,1)} · R ${fmt(last.R,1)}</div></div>`;
+ const bad = data.some(d => d.S < -0.5 || d.I < -0.5 || d.R < -0.5 || !Number.isFinite(d.S));
+ $('warn').textContent = bad ? '⚠ El paso h es muy grande para estos parámetros: RK4 da valores negativos o inestables. Reduce h.' : '';
+}
+
+// ---------- gráfica ----------
+const cv = $('chart'), cx = cv.getContext('2d');
+function draw(){
+ const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+ cv.width = W*dpr; cv.height = H*dpr; cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,W,H);
+ const L=52, R=16, T=12, B=36, N = P.S0+P.I0+P.R0;
+ let ymax = Math.max(N, ...data.map(d=>Math.max(d.S,d.I,d.R)).filter(Number.isFinite)); ymax = niceMax(ymax);
+ const tmax = data[data.length-1].t || 1;
+ const X = t => L + (W-L-R) * t / tmax, Y = v => T + (H-T-B) * (1 - v / ymax);
+ cx.font = '12px "Share Tech Mono", monospace'; cx.fillStyle = '#9a92c4'; cx.lineWidth = 1;
+ for (let i=0;i<=5;i++){ const v = ymax*i/5; cx.strokeStyle='rgba(0,240,255,.12)'; cx.beginPath(); cx.moveTo(L,Y(v)); cx.lineTo(W-R,Y(v)); cx.stroke(); cx.textAlign='right'; cx.fillText(+v.toFixed(1), L-8, Y(v)+4); }
+ const nt = 10; for (let i=0;i<=nt;i++){ const t = tmax*i/nt; cx.textAlign='center'; cx.fillText(+t.toFixed(1), X(t), H-B+18); }
+ cx.fillText('TIEMPO (t)', (W+L)/2, H-4);
+ const line = (key, col) => {
+  const pts = data.map(d => [X(d.t), Y(Math.max(-ymax*.05, Math.min(ymax*1.05, d[key])))]);
+  [[8,.22],[2.6,1]].forEach(([w,a]) => { cx.globalAlpha=a; cx.strokeStyle=col; cx.lineWidth=w; cx.beginPath(); pts.forEach((p,i)=> i?cx.lineTo(...p):cx.moveTo(...p)); cx.stroke(); });
+  cx.globalAlpha = 1;
+ };
+ line('S','#00f0ff'); line('I','#ff2bd6'); line('R','#f3ff3c');
+ if ($('showAn').checked){
+  const k = P.beta*N - P.gamma; cx.save(); cx.beginPath(); cx.rect(L,T,W-L-R,H-T-B); cx.clip();
+  cx.setLineDash([7,6]); cx.strokeStyle='#ffffff'; cx.lineWidth=2; cx.beginPath();
+  for (let i=0;i<=200;i++){ const t = tmax*i/200, v = P.I0*Math.exp(k*t); const y = Y(Math.min(v, ymax*2)); i?cx.lineTo(X(t),y):cx.moveTo(X(t),y); if (v>ymax*2) break; }
+  cx.stroke(); cx.restore();
+ }
+ // cursor de tiempo
+ const d = data[cur]; cx.strokeStyle='rgba(255,255,255,.55)'; cx.setLineDash([3,4]); cx.lineWidth=1; cx.beginPath(); cx.moveTo(X(d.t),T); cx.lineTo(X(d.t),H-B); cx.stroke(); cx.setLineDash([]);
+ [['S','#00f0ff'],['I','#ff2bd6'],['R','#f3ff3c']].forEach(([k,c]) => { cx.fillStyle=c; cx.shadowColor=c; cx.shadowBlur=10; cx.beginPath(); cx.arc(X(d.t), Y(d[k]), 4.5, 0, 7); cx.fill(); cx.shadowBlur=0; });
+}
+function niceMax(v){ if (!(v>0)) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1,1.2,1.5,2,2.5,3,4,5,6,8,10]) if (m*p >= v) return m*p; return 10*p; }
+
+// ---------- red de computadoras ----------
+const netEl = $('net'); const CELLS = 100; const cells = [];
+for (let i=0;i<CELLS;i++){ const c = document.createElement('div'); c.className='pc S'; netEl.appendChild(c); cells.push(c); }
+// orden fijo pseudoaleatorio para que la infección "salte" por la red
+const order = [...Array(CELLS).keys()]; let seed = 7; const rnd = () => (seed = (seed*16807)%2147483647)/2147483647;
+for (let i=CELLS-1;i>0;i--){ const j = Math.floor(rnd()*(i+1)); [order[i],order[j]] = [order[j],order[i]]; }
+function net(){
+ const d = data[cur], N = Math.max(1e-9, d.S + d.I + d.R);
+ let nI = Math.round(Math.max(0,d.I)/N*CELLS), nR = Math.round(Math.max(0,d.R)/N*CELLS);
+ nI = Math.min(nI, CELLS); nR = Math.min(nR, CELLS-nI);
+ order.forEach((idx, k) => { cells[idx].className = 'pc ' + (k < nI ? 'I' : k < nI+nR ? 'R' : 'S'); });
+ $('tlabel').textContent = 't = ' + fmt(d.t, 2);
+ $('now').innerHTML = `
+  <div class="stat"><div class="k">Susceptibles</div><div class="v">${fmt(d.S,2)}</div></div>
+  <div class="stat m"><div class="k">Infectadas</div><div class="v">${fmt(d.I,2)}</div></div>
+  <div class="stat y"><div class="k">Recuperadas</div><div class="v">${fmt(d.R,2)}</div></div>
+  <div class="note">Cada cuadro ≈ ${fmt(N/CELLS,2)} computadora(s).</div>`;
+ document.querySelectorAll('#tbl tr.cur').forEach(r => r.classList.remove('cur'));
+ const row = document.querySelector(`#tbl tr[data-i="${cur}"]`); if (row) row.classList.add('cur');
+}
+
+// ---------- tabla y CSV ----------
+function table(){
+ const rows = data.map((d,i) => `<tr data-i="${i}"><td>${i}</td><td>${fmt(d.t,2)}</td><td>${fmt(d.S,6)}</td><td>${fmt(d.I,6)}</td><td>${fmt(d.R,6)}</td><td>${fmt(d.S+d.I+d.R,4)}</td></tr>`).join('');
+ $('tbl').innerHTML = `<thead><tr><th>n</th><th>t</th><th>S</th><th>I</th><th>R</th><th>S+I+R</th></tr></thead><tbody>${rows}</tbody>`;
+}
+$('csv').onclick = () => {
+ const head = `# Modelo ${mode}; beta=${P.beta}; gamma=${P.gamma}${mode==='SIRS'?'; alpha='+P.alpha:''}; h=${P.h}\n`;
+ const csv = head + 'n,t,S,I,R\n' + data.map((d,i)=>[i,d.t,d.S,d.I,d.R].join(',')).join('\n');
+ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+ a.download = `simulacion_${mode}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+};
+
+// ---------- reproducción ----------
+let timer = null;
+$('tcur').addEventListener('input', e => { cur = +e.target.value; draw(); net(); });
+$('showAn').addEventListener('change', draw);
+$('play').onclick = () => {
+ if (timer){ clearInterval(timer); timer=null; $('play').textContent='▶ Simular'; return; }
+ if (cur >= data.length-1) cur = 0;
+ $('play').textContent = '❚❚ Pausa';
+ const dt = Math.max(16, 6000 / data.length);
+ timer = setInterval(() => {
+  cur++; $('tcur').value = cur; draw(); net();
+  if (cur >= data.length-1){ clearInterval(timer); timer=null; $('play').textContent='▶ Simular'; }
+ }, dt);
+};
+window.addEventListener('resize', draw);
+setMode('SIR');
+</script>
+</body>
+</html>
